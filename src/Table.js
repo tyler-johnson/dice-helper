@@ -1,22 +1,21 @@
 import React, { Component } from 'react';
 import {object,number,arrayOf,func,string,node} from "prop-types";
-import {formatNumber,calcResults} from "./util";
+import {displayNumber,calcResults} from "./util";
 import classnames from "classnames";
 
 export class ResultTable extends Component {
   static propTypes = {
     settings: object,
     rounds: arrayOf(object),
-    onClear: func,
     onLock: func,
     onUnlock: func
   };
 
   render() {
-    const {settings,rounds,onLock,onClear,onUnlock} = this.props;
+    const {settings,rounds,onLock,onUnlock} = this.props;
     const results = calcResults(settings, rounds);
 
-    return <table className="table table-responsive">
+    return <table className="table">
       <thead>
         <tr key="i">
           <th>#</th>
@@ -28,12 +27,7 @@ export class ResultTable extends Component {
           <th>Profit</th>
           <th>PPR</th>
           <th>Return</th>
-          <th><button
-            className="btn btn-link btn-sm"
-            onClick={() => onClear ? onClear() : null}
-          >
-            <i className="fa fa-trash-o"></i> Clear
-          </button></th>
+          <th></th>
         </tr>
       </thead>
       <tbody>
@@ -90,18 +84,18 @@ export class ResultRow extends Component {
 
     return <tr {...props} className={classnames(classes)}>
       <td>{index}</td>
-      <td>{formatNumber(data.prob*100, "%")}</td>
-      <td>{formatNumber(data.adjprob*100, "%")}</td>
+      <td>{displayNumber(data.prob*100, "%")}</td>
+      <td>{displayNumber(data.adjprob*100, "%")}</td>
       <td>
-        <input type="number" value={data.bet} className="form-control form-control-sm" />
-        {/* {formatNumber(data.bet, settings.unit)} */}
+        {/* <input type="number" value={data.bet} className="form-control form-control-sm" /> */}
+        {displayNumber(data.bet, settings.unit)}
         </td>
-      <td>{formatNumber(data.losses, settings.unit)}</td>
-      <td>{formatNumber(data.payout, settings.unit)}</td>
-      <td>{formatNumber(profit, settings.unit)}</td>
-      <td>{formatNumber(profit / index, settings.unit)}</td>
-      <td>{formatNumber((profit / data.losses)*100, "%")}</td>
-      <td>{children}</td>
+      <td>{displayNumber(data.losses, settings.unit)}</td>
+      <td>{displayNumber(data.payout, settings.unit)}</td>
+      <td>{displayNumber(profit, settings.unit)}</td>
+      <td>{displayNumber(profit / index, settings.unit)}</td>
+      <td>{displayNumber((profit / data.losses)*100, "%")}</td>
+      <td style={{width: "100%"}}>{children}</td>
     </tr>;
   }
 }

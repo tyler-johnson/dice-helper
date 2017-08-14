@@ -1,10 +1,14 @@
-import React from 'react';
+import React, {Component} from 'react';
+import EventEmitter from "events";
+import {object,any,func} from "prop-types";
 
-export class Data {
+export class Data extends EventEmitter {
   constructor(store, key) {
+    super();
+
     if (typeof store === "string") [key,store] = [store,null];
     if (store == null) store = window.localStorage;
-    if (typeof key !== "string" || !key) key = "data"
+    if (typeof key !== "string" || !key) key = "dice-helper-data";
 
     this.store = store;
     this.key = key;
@@ -24,9 +28,9 @@ export class Data {
     return this.data;
   }
 
-  get(def) {
+  toJSON() {
     if (!this._fetched) this.fetch();
-    return typeof this.data === "undefined" ? def : this.data;
+    return this.data;
   }
   
   save(data) {
@@ -38,7 +42,55 @@ export class Data {
       this.store.setItem(this.key, JSON.stringify(data));
     }
 
+    this.emit("change", this.data);
     return this;
+  }
+}
+
+export function WatchData(Comp, prop) {
+  if (!Comp.propTypes) Comp.propTypes = {};
+  if (!Comp.propTypes.data) Comp.propTypes.data = any;
+  if (!Comp.propTypes.onChange) Comp.propTypes.onChange = func;
+
+  return class WatchData extends Component {
+    static propTypes = {
+      [prop]: object
+    };
+
+    componentDidMount() {
+      this.addListener(this.props);
+    }
+
+    componentWillReceiveProps(props) {
+      this.removeListener();
+      this.addListener(props);
+    }
+
+    componentWillUnmount() {
+      this.removeListener();
+    }
+
+    addListener(props=this.props) {
+      props[prop].on("change", this.listener = () => {
+        this.setState({});
+      });
+    }
+
+    removeListener(props=this.props) {
+      props[prop].removeListener("change", this.listener);
+    }
+
+    render() {
+      const data = this.props[prop].toJSON();
+      return <Comp
+        {...this.props}
+        data={data}
+        onChange={this.onChange} />;
+    }
+
+    onChange = (val) => {
+      this.props[prop].save(val);
+    }
   }
 }
 
@@ -62,7 +114,7 @@ export function calcResults(settings, rounds, its) {
   for (let i = 0; i < its; i++) {
     const prev = !i ? rounds[rounds.length - 1] : results[i - 1];
     const getPrev = (key) => prev && typeof prev[key] === "number" ? prev[key] : 0;
-    const bet = getPrev("bet") ? getPrev("bet") * settings.factor : settings.bet;
+    const bet = i && getPrev("bet") ? getPrev("bet") * settings.factor : settings.bet;
     const prob = baseProb * Math.pow(1 - settings.prob, i) * settings.prob;
     const payout = ((1 - settings.prob - settings.fee) / settings.prob) * bet;
     
@@ -78,12 +130,17 @@ export function calcResults(settings, rounds, its) {
   return results;
 }
 
-export function formatNumber(n, unit) {
+export function displayNumber(n, unit) {
   return <span>
-    {n.toLocaleString(void 0, {
-      maximumFractionDigits: 3
-    })}
+    {formatNumber(n)}
     &nbsp;
     <small className="text-muted">{unit}</small>
   </span>;
+}
+
+export function formatNumber(n, opts) {
+  return typeof n === "number" ? n.toLocaleString(void 0, {
+    maximumFractionDigits: 3,
+    ...opts
+  }) : n;
 }
